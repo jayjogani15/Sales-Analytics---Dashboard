@@ -111,6 +111,7 @@ def load_dataframe(filepath: str):
             missing.append(req)
 
     if missing:
+        print(f"Validation Error: Missing required columns: {', '.join(sorted(missing))}")
         return None, f"Missing required columns: {', '.join(sorted(missing))}"
 
     # Rename to standard names if needed
@@ -120,13 +121,15 @@ def load_dataframe(filepath: str):
     df.dropna(subset=["Date", "Product", "Region", "Sales"], how="all", inplace=True)
 
     if df.empty:
-        return None, 
+        print("Validation Error: DataFrame is empty after dropping invalid rows.")
+        return None, "File is empty or contains no valid data."
 
     # Parse Date column
     try:
         df["Date"] = pd.to_datetime(df["Date"])
-    except Exception:
-        return None, 
+    except Exception as e:
+        print(f"Validation Error: Date parsing failed: {e}")
+        return None, "Invalid date format in 'Date' column."
 
     # Ensure Sales is numeric
     df["Sales"] = pd.to_numeric(df["Sales"], errors="coerce")
