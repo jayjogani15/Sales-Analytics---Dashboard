@@ -36,7 +36,15 @@ REQUIRED_COLUMNS = {"Date", "Product", "Region", "Sales"}
 # Make sure the data folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+# Database Configuration
+# Fallback to local SQLite if DATABASE_URL is not provided (e.g., local dev)
+db_url = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
+
+# Fix for Render/Heroku PostgreSQL URLs: SQLAlchemy requires 'postgresql://'
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize Extensions
