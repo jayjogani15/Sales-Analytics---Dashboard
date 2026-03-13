@@ -329,12 +329,31 @@ def build_line_chart(df: pd.DataFrame) -> str:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#cbd5e1", family="Inter, sans-serif"),
-        xaxis=dict(showgrid=False, zeroline=False, tickangle=-30, color="#94a3b8"),
-        yaxis=dict(showgrid=True, gridcolor="rgba(100,116,139,0.25)", zeroline=False,
-                   color="#94a3b8", tickprefix="$"),
+        xaxis=dict(
+            showgrid=False, 
+            zeroline=False, 
+            tickangle=-30, 
+            color="#94a3b8",
+            showspikes=False # Remove the "big white line" (spikes)
+        ),
+        yaxis=dict(
+            showgrid=True, 
+            gridcolor="rgba(100,116,139,0.25)", 
+            zeroline=False,
+            color="#94a3b8", 
+            tickprefix="$",
+            showspikes=False
+        ),
         margin=dict(t=60, b=70, l=70, r=20),
         height=380,
-        hovermode="x unified",
+        hovermode="closest", # Removes the unified vertical line
+        hoverlabel=dict(
+            bgcolor="#0f172a", # Dark black-blue background
+            font_size=13,
+            font_color="#ffffff", # White text
+            font_family="Inter, sans-serif",
+            bordercolor="#1e293b"
+        )
     )
     return to_chart_json(fig)
 
