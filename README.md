@@ -1,6 +1,6 @@
 # Sales Analytics Dashboard 🚀
 
-A modern, interactive, and beautifully designed Sales Analytics Dashboard built with Python, Flask, and Plotly. This web application allows users to upload sales data via CSV and instantly generates key business insights, interactive charts, and a filterable data table.
+The Sales Analytics Dashboard is a data-driven web application designed to analyze and visualize sales performance using Python, Flask, and data visualization libraries. The dashboard provides interactive charts and insights that help businesses understand revenue trends, regional performance, and overall sales growth.
 
 ## ✨ Features
 
@@ -26,7 +26,7 @@ A modern, interactive, and beautifully designed Sales Analytics Dashboard built 
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/jayjogani15/Sales-Analytics-Dashboard.git
+   git clone https://github.com/jayjogani15/Sales-Analytics---Dashboard.git
    cd sales-dashboard
    ```
 
