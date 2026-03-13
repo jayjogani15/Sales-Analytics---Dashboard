@@ -228,26 +228,43 @@ def build_bar_chart(df: pd.DataFrame) -> str:
             x=product_sales["Product"],
             y=product_sales["Sales"],
             marker=dict(
-                color=["#6366f1", "#22d3ee", "#f59e0b", "#10b981", "#a855f7",
-                       "#ef4444", "#8b5cf6", "#06b6d4"],
-                line=dict(color="rgba(0,0,0,0.3)", width=1),
+                color="#22d3ee", # Cyan to match the trend line theme
+                line=dict(color="rgba(255,255,255,0.1)", width=1),
+                opacity=0.85
             ),
             text=[f"${v:,.0f}" for v in product_sales["Sales"]],
             textposition="outside",
             textfont=dict(color="#e2e8f0", size=11),
+            hoverinfo="y+text",
         )
     )
     fig.update_layout(
-        title=dict(text="Sales by Product", font=dict(size=18, color="#e2e8f0"), x=0.02),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#cbd5e1", family="Inter, sans-serif"),
-        xaxis=dict(showgrid=False, zeroline=False, color="#94a3b8"),
-        yaxis=dict(showgrid=True, gridcolor="rgba(100,116,139,0.25)", zeroline=False,
-                   color="#94a3b8", tickprefix="$"),
-        margin=dict(t=60, b=40, l=60, r=20),
+        xaxis=dict(
+            showgrid=False, 
+            zeroline=False, 
+            color="#94a3b8",
+            tickfont=dict(size=11)
+        ),
+        yaxis=dict(
+            showgrid=True, 
+            gridcolor="rgba(100,116,139,0.2)", 
+            zeroline=False,
+            color="#94a3b8", 
+            tickprefix="$",
+            rangemode="tozero" # Ensure it starts at 0
+        ),
+        margin=dict(t=30, b=40, l=60, r=20),
         height=380,
-        bargap=0.4,
+        bargap=0.5,
+        hoverlabel=dict(
+            bgcolor="#0f172a",
+            font_size=13,
+            font_color="#ffffff",
+            font_family="Inter, sans-serif"
+        )
     )
     return to_chart_json(fig)
 
