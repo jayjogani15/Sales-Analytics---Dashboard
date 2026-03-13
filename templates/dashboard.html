@@ -354,7 +354,7 @@
             // Bind Drill-down events
             document.getElementById('barChart').on('plotly_click', function(data) {
                 if (data.points && data.points.length > 0) {
-                    const product = data.points[0].y; // y-axis is product in horizontal bar chart
+                    const product = data.points[0].x; // x-axis is product in vertical bar chart
                     document.getElementById('filterProduct').value = product;
                     fetchFilteredData();
                 }

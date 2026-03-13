@@ -216,19 +216,17 @@ def compute_kpis(df: pd.DataFrame, full_df: pd.DataFrame = None) -> dict:
 
 
 def build_bar_chart(df: pd.DataFrame) -> str:
-    
     product_sales = (
         df.groupby("Product")["Sales"]
         .sum()
         .reset_index()
-        .sort_values("Sales", ascending=True) # Ascending for horizontal bar (largest on top)
+        .sort_values("Sales", ascending=False)
     )
 
     fig = go.Figure(
         go.Bar(
-            x=product_sales["Sales"],
-            y=product_sales["Product"],
-            orientation="h",
+            x=product_sales["Product"],
+            y=product_sales["Sales"],
             marker=dict(
                 color=["#6366f1", "#22d3ee", "#f59e0b", "#10b981", "#a855f7",
                        "#ef4444", "#8b5cf6", "#06b6d4"],
@@ -236,7 +234,7 @@ def build_bar_chart(df: pd.DataFrame) -> str:
             ),
             text=[f"${v:,.0f}" for v in product_sales["Sales"]],
             textposition="outside",
-            textfont=dict(color="#e2e8f0", size=12),
+            textfont=dict(color="#e2e8f0", size=11),
         )
     )
     fig.update_layout(
@@ -244,12 +242,12 @@ def build_bar_chart(df: pd.DataFrame) -> str:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#cbd5e1", family="Inter, sans-serif"),
-        xaxis=dict(showgrid=True, gridcolor="rgba(100,116,139,0.25)", zeroline=False,
+        xaxis=dict(showgrid=False, zeroline=False, color="#94a3b8"),
+        yaxis=dict(showgrid=True, gridcolor="rgba(100,116,139,0.25)", zeroline=False,
                    color="#94a3b8", tickprefix="$"),
-        yaxis=dict(showgrid=False, zeroline=False, color="#94a3b8"),
-        margin=dict(t=60, b=40, l=80, r=20),
+        margin=dict(t=60, b=40, l=60, r=20),
         height=380,
-        bargap=0.3,
+        bargap=0.4,
     )
     return to_chart_json(fig)
 
@@ -286,34 +284,30 @@ def build_pie_chart(df: pd.DataFrame) -> str:
 
 
 def build_line_chart(df: pd.DataFrame) -> str:
-   
-    # Work on a copy so we don't mutate the caller's DataFrame
     dfc = df.copy()
     
-    # The dataset spans several months. Grouping by Week provides the best 
-    # balance between showing trends and preventing marker clustering.
-    dfc["Week"] = dfc["Date"].dt.to_period("W").apply(lambda r: r.start_time)
-    dfc["DateStr"] = dfc["Week"].dt.strftime("%Y-%m-%d")
-    weekly = dfc.groupby("DateStr")["Sales"].sum().reset_index().sort_values("DateStr")
+    # Aggregating by Day instead of Week to provide more dynamic/variable trends
+    dfc["DateStr"] = dfc["Date"].dt.strftime("%Y-%m-%d")
+    daily = dfc.groupby("DateStr")["Sales"].sum().reset_index().sort_values("DateStr")
 
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
-            x=weekly["DateStr"],
-            y=weekly["Sales"],
+            x=daily["DateStr"],
+            y=daily["Sales"],
             mode="lines+markers",
-            name="Weekly Sales",
+            name="Daily Sales",
             line=dict(color="#6366f1", width=3, shape="spline"),
-            marker=dict(size=8, color="#818cf8",
-                        line=dict(color="#0f172a", width=2)),
+            marker=dict(size=6, color="#818cf8",
+                        line=dict(color="#0f172a", width=1.5)),
             fill="tozeroy",
             fillcolor="rgba(99,102,241,0.12)",
-            customdata=weekly["Sales"].values,
-            hovertemplate="<b>Week of %{x}</b><br>Sales: $%{customdata:,.0f}<extra></extra>",
+            customdata=daily["Sales"].values,
+            hovertemplate="<b>%{x}</b><br>Sales: $%{customdata:,.0f}<extra></extra>",
         )
     )
     fig.update_layout(
-        title=dict(text="Weekly Sales Trend", font=dict(size=18, color="#e2e8f0"), x=0.02),
+        title=dict(text="Daily Sales Trend", font=dict(size=18, color="#e2e8f0"), x=0.02),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#cbd5e1", family="Inter, sans-serif"),
