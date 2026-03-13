@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="latin1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sales Analytics — Dashboard</title>
+    <meta name="description"
+        content="Interactive sales analytics dashboard with KPI cards, bar charts, pie charts, and trend lines." />
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet" />
+    <!-- Plotly.js — latest stable -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}?v=1.8" rel="stylesheet" />
+</head>
+
+<body>
+
+    <!-- ── Animated Background ────────────────────────────────────────── -->
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+
+    <!-- ── Navbar ─────────────────────────────────────────────────────── -->
+    <nav class="navbar navbar-dark sticky-top">
+        <div class="container-fluid px-xl-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('upload') }}">
+                <i class="bi bi-bar-chart-line-fill text-indigo"></i>
+                <span class="fw-bold">SalesFlow <span class="fw-light text-muted">Analytics</span></span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge glass-badge d-none d-md-inline-block">
+                    <i class="bi bi-file-earmark-text me-1"></i>{{ filename }}
+                </span>
+                <button class="btn btn-outline-secondary btn-sm d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+                    <i class="bi bi-funnel"></i> Filters
+                </button>
+                <button id="themeToggleBtn" class="btn btn-outline-warning btn-sm shadow-sm" title="Toggle Light/Dark Mode">
+                    <i class="bi bi-brightness-high-fill"></i>
+                </button>
+                <button id="refreshDataBtn" class="btn btn-indigo btn-sm shadow-sm">
+                    <i class="bi bi-arrow-clockwise"></i><span class="d-none d-md-inline ms-1">Refresh Data</span>
+                </button>
+                <a href="{{ url_for('upload') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-cloud-arrow-up"></i><span class="d-none d-md-inline ms-1">Upload New</span>
+                </a>
+                <a href="{{ url_for('reset') }}" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-x-circle"></i><span class="d-none d-md-inline ms-1">Reset</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm shadow-sm ms-2">
+                    <i class="bi bi-box-arrow-right"></i><span class="d-none d-md-inline ms-1">Sign Out</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── Dashboard Layout Layout (Sidebar + Main) ─────────────────── -->
+    <div class="container-fluid px-xl-4">
+        <div class="row">
+            <!-- ── Sidebar (Filters) ─────────────────────────────────── -->
+            <nav id="sidebarMenu" class="col-lg-3 col-xl-2 d-lg-block sidebar collapse glass-card mt-3 mb-4">
+                <div class="position-sticky pt-3 pb-4 px-2">
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-2 mt-2 mb-3 text-muted text-uppercase fw-bold">
+                        <span><i class="bi bi-funnel-fill me-2 text-indigo"></i>Data Filters</span>
+                    </h6>
+
+                    <form id="filterForm">
+                        <div class="mb-3 px-2">
+                            <label class="form-label text-secondary small fw-semibold">Region</label>
+                            <select class="form-select form-select-sm glass-input" id="filterRegion" name="region">
+                                <option value="All">All Regions</option>
+                                {% for r in regions %}
+                                <option value="{{ r }}">{{ r }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3 px-2">
+                            <label class="form-label text-secondary small fw-semibold">Product</label>
+                            <select class="form-select form-select-sm glass-input" id="filterProduct" name="product">
+                                <option value="All">All Products</option>
+                                {% for p in products %}
+                                <option value="{{ p }}">{{ p }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Quick Date Presets -->
+                        <div class="mb-3 px-2">
+                            <label class="form-label text-secondary small fw-semibold d-block">Quick Select</label>
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-outline-secondary btn-sm date-preset-btn" data-days="7">7D</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm date-preset-btn" data-days="30">30D</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm date-preset-btn" data-days="ytd">YTD</button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 px-2">
+                            <label class="form-label text-secondary small fw-semibold">Start Date</label>
+                            <input type="date" class="form-control form-control-sm glass-input" id="filterStartDate" name="start_date">
+                        </div>
+
+                        <div class="mb-4 px-2">
+                            <label class="form-label text-secondary small fw-semibold">End Date</label>
+                            <input type="date" class="form-control form-control-sm glass-input" id="filterEndDate" name="end_date">
+                        </div>
+
+                        <div class="px-2 d-grid gap-2">
+                            <button type="submit" class="btn btn-indigo btn-sm w-100">
+                                <i class="bi bi-arrow-repeat me-1"></i>Apply Filters
+                            </button>
+                            <button type="button" id="clearFiltersBtn" class="btn btn-outline-secondary btn-sm w-100">
+                                Clear
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </nav>
+
+            <!-- ── Main Content Area ─────────────────────────────────── -->
+            <main class="col-lg-9 col-xl-10 ms-sm-auto px-lg-4 pb-5">
+
+    <!-- ── Flash Messages ─────────────────────────────────────────────── -->
+    <div class="container-xl mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show glass-alert" role="alert">
+            <i class="bi bi-{{ 'check-circle' if category == 'success' else 'info-circle' }} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- ── Page Header ────────────────────────────────────────────────── -->
+    <div class="pt-4 pb-2">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <h1 class="h3 fw-bold mb-1">Sales <span class="gradient-text">Analytics Dashboard</span></h1>
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-clock me-1"></i>Generated from <strong>{{ filename }}</strong> &mdash;
+                    <span id="kpi-records">{{ kpis.total_records }}</span> records displayed
+                </p>
+            </div>
+        </div>
+    </div>
+    <!-- ── AI Insights ────────────────────────────────────────────────── -->
+    <section class="py-2 mb-2">
+        <div class="card glass-card border-0 shadow-sm" style="background: linear-gradient(145deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.05)); border-left: 4px solid var(--indigo) !important;">
+            <div class="card-body p-3 d-flex align-items-center gap-3">
+                <div class="rounded-circle btn-indigo d-flex align-items-center justify-content-center flex-shrink-0" style="width: 45px; height: 45px; padding: 0;">
+                    <i class="bi bi-magic fs-5"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-1 text-primary">Smart Insights</h6>
+                    <ul class="list-unstyled mb-0 small text-secondary" id="ai-insights-list" style="margin-left: 0;">
+                        {% for insight in kpis.insights %}
+                        <li class="mb-1"><i class="bi bi-lightbulb-fill text-warning me-2"></i>{{ insight | safe }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── KPI Cards ──────────────────────────────────────────────────── -->
+    <section class="py-3">
+        <div class="row g-3">
+
+            <div class="col-6 col-md-4 col-xl">
+                <div class="kpi-card kpi-indigo">
+                    <div class="kpi-icon"><i class="bi bi-currency-dollar"></i></div>
+                    <div class="kpi-label">Total Sales</div>
+                    <div class="kpi-value" id="kpi-total-sales">{{ kpis.total_sales }}</div>
+                    <div class="kpi-sub">
+                        <span id="kpi-sales-growth" class="{{ kpis.sales_growth_class }} fw-bold">{{ kpis.sales_growth }}</span> vs prev period
+                    </div>
+                    <div class="mt-auto text-start pt-2 border-top" style="border-color: rgba(255,255,255,0.1) !important;">
+                        <div class="d-flex justify-content-between text-white-50 fw-semibold" style="font-size: 0.70rem;">
+                            <span>YEARLY GOAL</span>
+                            <span id="kpi-revenue-goal">{{ kpis.revenue_goal }}</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 6px; background-color: rgba(0,0,0,0.2);">
+                            <div id="kpi-progress-bar" class="progress-bar bg-warning" role="progressbar" style="width: {{ kpis.goal_progress_pct }}%; border-radius: 10px; transition: width 0.8s ease-out;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl">
+                <div class="kpi-card kpi-cyan">
+                    <div class="kpi-icon"><i class="bi bi-calculator-fill"></i></div>
+                    <div class="kpi-label">Avg. Sale</div>
+                    <div class="kpi-value" id="kpi-avg-sales">{{ kpis.avg_sales }}</div>
+                    <div class="kpi-sub">Per transaction</div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl">
+                <div class="kpi-card kpi-amber">
+                    <div class="kpi-icon"><i class="bi bi-trophy-fill"></i></div>
+                    <div class="kpi-label">Best Product</div>
+                    <div class="kpi-value small-val" id="kpi-best-product">{{ kpis.best_product }}</div>
+                    <div class="kpi-sub">Highest revenue</div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl">
+                <div class="kpi-card kpi-emerald">
+                    <div class="kpi-icon"><i class="bi bi-geo-alt-fill"></i></div>
+                    <div class="kpi-label">Top Region</div>
+                    <div class="kpi-value small-val" id="kpi-top-region">{{ kpis.top_region }}</div>
+                    <div class="kpi-sub">Leading market</div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl">
+                <div class="kpi-card kpi-purple">
+                    <div class="kpi-icon"><i class="bi bi-boxes"></i></div>
+                    <div class="kpi-label">Products</div>
+                    <div class="kpi-value" id="kpi-total-products">{{ kpis.total_products }}</div>
+                    <div class="kpi-sub">Unique items</div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ── Charts Row 1 ───────────────────────────────────────────────── -->
+    <section class="py-2">
+        <div class="row g-3">
+
+            <!-- Bar Chart -->
+            <div class="col-12 col-lg-7">
+                <div class="card glass-card chart-card">
+                    <div class="card-header-custom">
+                        <i class="bi bi-bar-chart-fill text-indigo me-2"></i>Sales by Product
+                    </div>
+                    <div class="card-body p-3">
+                        <div id="barChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pie Chart -->
+            <div class="col-12 col-lg-5">
+                <div class="card glass-card chart-card">
+                    <div class="card-header-custom">
+                        <i class="bi bi-pie-chart-fill text-cyan me-2"></i>Sales by Region
+                    </div>
+                    <div class="card-body p-3">
+                        <div id="pieChart" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ── Charts Row 2 — Line ────────────────────────────────────────── -->
+    <section class="py-2">
+        <div class="card glass-card chart-card">
+            <div class="card-header-custom">
+                <i class="bi bi-graph-up-arrow text-emerald me-2"></i>Weekly Sales Trend
+            </div>
+            <div class="card-body p-3">
+                <div id="lineChart" class="chart-container"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Data Table ─────────────────────────────────────────────────── -->
+    <section class="py-3 mb-5">
+        <div class="card glass-card">
+            <div class="card-header-custom d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-table text-amber me-2"></i>Sales Records Database</span>
+            </div>
+            <div class="card-body p-3">
+                <div class="table-responsive">
+                    <table class="table table-sales table-hover mb-0 w-100" id="salesTable">
+                        <thead>
+                            <tr>
+                                <th><i class="bi bi-calendar2-week me-1"></i>Date</th>
+                                <th><i class="bi bi-box-seam me-1"></i>Product</th>
+                                <th><i class="bi bi-geo-alt me-1"></i>Region</th>
+                                <th class="text-end"><i class="bi bi-currency-dollar me-1"></i>Sales</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by DataTables via JS initially and on update -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- DataTables Buttons CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
+
+    <!-- jQuery & Bootstrap -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- DataTables JS & Buttons Extension -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
+    <!-- Initial Data Injected via Jinja2 -->
+    <script type="application/json" id="barChartData">{{ bar_chart_json | safe }}</script>
+    <script type="application/json" id="pieChartData">{{ pie_chart_json | safe }}</script>
+    <script type="application/json" id="lineChartData">{{ line_chart_json | safe }}</script>
+    <script type="application/json" id="initTableData">{{ table_data | tojson | safe }}</script>
+
+    <script>
+        // Store the Plotly default config globally
+        const plotlyConfig = { responsive: true, displayModeBar: false };
+        let dataTable; // Global DataTable instance reference
+
+        // Parse initial figures
+        let barFig = JSON.parse(document.getElementById('barChartData').textContent);
+        let pieFig = JSON.parse(document.getElementById('pieChartData').textContent);
+        let lineFig = JSON.parse(document.getElementById('lineChartData').textContent);
+        let initTableData = JSON.parse(document.getElementById('initTableData').textContent);
+
+        function renderPlots(barData, pieData, lineData) {
+            Plotly.react('barChart', barData.data, barData.layout, plotlyConfig);
+            Plotly.react('pieChart', pieData.data, pieData.layout, plotlyConfig);
+            Plotly.react('lineChart', lineData.data, lineData.layout, plotlyConfig);
+            
+            // Ensure theme colors are applied after rendering
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            applyThemeToPlotly(currentTheme);
+
+            // Bind Drill-down events
+            document.getElementById('barChart').on('plotly_click', function(data) {
+                if (data.points && data.points.length > 0) {
+                    const product = data.points[0].y; // y-axis is product in horizontal bar chart
+                    document.getElementById('filterProduct').value = product;
+                    fetchFilteredData();
+                }
+            });
+
+            document.getElementById('pieChart').on('plotly_click', function(data) {
+                if (data.points && data.points.length > 0) {
+                    const region = data.points[0].label;
+                    document.getElementById('filterRegion').value = region;
+                    fetchFilteredData();
+                }
+            });
+        }
+
+        function applyThemeToPlotly(theme) {
+            const fontColor = theme === 'light' ? '#334155' : '#e2e8f0';
+            const update = {
+                'font.color': fontColor,
+                'title.font.color': fontColor
+            };
+            
+            // Check if plots are rendered before updating
+            if (document.getElementById('barChart').data) Plotly.relayout('barChart', update);
+            if (document.getElementById('pieChart').data) Plotly.relayout('pieChart', update);
+            if (document.getElementById('lineChart').data) Plotly.relayout('lineChart', update);
+        }
+
+        function updateKPIs(kpis) {
+            document.getElementById('kpi-total-sales').textContent = kpis.total_sales;
+            document.getElementById('kpi-avg-sales').textContent = kpis.avg_sales;
+            document.getElementById('kpi-best-product').textContent = kpis.best_product;
+            document.getElementById('kpi-top-region').textContent = kpis.top_region;
+            document.getElementById('kpi-total-products').textContent = kpis.total_products;
+            document.getElementById('kpi-records').textContent = kpis.total_records;
+
+            // Update Sales Growth Indicator
+            const growthEl = document.getElementById('kpi-sales-growth');
+            growthEl.textContent = kpis.sales_growth;
+            growthEl.className = `${kpis.sales_growth_class} fw-bold`;
+            
+            // Update AI Insights
+            const insightsList = document.getElementById('ai-insights-list');
+            if (insightsList && kpis.insights) {
+                insightsList.innerHTML = kpis.insights.map(insight => 
+                    `<li class="mb-1"><i class="bi bi-lightbulb-fill text-warning me-2"></i>${insight}</li>`
+                ).join('');
+            }
+
+            // Update Goal Progress Bar
+            const goalEl = document.getElementById('kpi-revenue-goal');
+            const progressEl = document.getElementById('kpi-progress-bar');
+            if (goalEl && kpis.revenue_goal !== undefined) {
+                goalEl.textContent = kpis.revenue_goal;
+            }
+            if (progressEl && kpis.goal_progress_pct !== undefined) {
+                progressEl.style.width = `${kpis.goal_progress_pct}%`;
+            }
+        }
+
+        // Fetch data based on filters
+        async function fetchFilteredData() {
+            // Show subtle loading state (optional, relying on fast AJAX here)
+            const formObj = new FormData(document.getElementById('filterForm'));
+            const queryParams = new URLSearchParams(formObj).toString();
+
+            try {
+                const response = await fetch(`/api/data?${queryParams}`);
+                if (!response.ok) throw new Error('Network error');
+                const data = await response.json();
+
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+
+                // 1. Update KPIs
+                updateKPIs(data.kpis);
+
+                // 2. Update Charts
+                const bFig = JSON.parse(data.charts.bar);
+                const pFig = JSON.parse(data.charts.pie);
+                const lFig = JSON.parse(data.charts.line);
+                renderPlots(bFig, pFig, lFig);
+
+                // 3. Update DataTables
+                dataTable.clear().rows.add(data.table).draw(false);
+
+            } catch (error) {
+                console.error('Failed to fetch filtered data:', error);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', function () {
+            // First time render Plotly charts
+            renderPlots(barFig, pieFig, lineFig);
+
+            // Initialize DataTable
+            dataTable = $('#salesTable').DataTable({
+                data: initTableData,
+                columns: [
+                    { 
+                        data: 'Date',
+                        render: function(data, type) {
+                            if (type === 'display') {
+                                const d = new Date(data);
+                                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            }
+                            // For sorting, filtering, and type detection, return the raw ISO string
+                            return data;
+                        }
+                    },
+                    { 
+                        data: 'Product',
+                        render: function(data) { return `<span class="product-badge">${data}</span>`; }
+                    },
+                    { 
+                        data: 'Region',
+                        render: function(data) { 
+                            const cls = data ? data.toLowerCase() : '';
+                            return `<span class="region-pill region-${cls}">
+                                    <i class="bi bi-circle-fill me-1" style="font-size:6px; vertical-align:middle;"></i>${data}
+                                </span>`; 
+                        }
+                    },
+                    { 
+                        data: 'Sales', 
+                        className: 'text-end fw-semibold text-indigo-light' 
+                    }
+                ],
+                order: [[0, 'desc']], // sort by date descending by default
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search records..."
+                },
+                buttons: [
+                    {
+                        extend: 'csv',
+                        className: 'btn btn-sm btn-outline-secondary',
+                        text: '<i class="bi bi-filetype-csv me-1"></i>CSV'
+                    },
+                    {
+                        extend: 'excel',
+                        className: 'btn btn-sm btn-outline-success',
+                        text: '<i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel'
+                    }
+                ],
+                dom: '<"row align-items-center mb-3"<"col-sm-12 col-md-4"l><"col-sm-12 col-md-4 text-center"B><"col-sm-12 col-md-4"f>>' +
+                     '<"row"<"col-sm-12"tr>>' +
+                     '<"row align-items-center mt-3"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+            });
+
+            // Bind Filter Form Submit
+            document.getElementById('filterForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                fetchFilteredData();
+            });
+
+            // Bind Refresh Btn to fetch latest data instantly without reload
+            document.getElementById('refreshDataBtn').addEventListener('click', function() {
+                fetchFilteredData();
+            });
+
+            // Bind Clear Btn
+            document.getElementById('clearFiltersBtn').addEventListener('click', function() {
+                document.getElementById('filterRegion').value = 'All';
+                document.getElementById('filterProduct').value = 'All';
+                document.getElementById('filterStartDate').value = '';
+                document.getElementById('filterEndDate').value = '';
+                fetchFilteredData();
+            });
+
+            // Bind Quick Date Presets
+            document.querySelectorAll('.date-preset-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const preset = this.getAttribute('data-days');
+                    const end = new Date();
+                    let start = new Date();
+
+                    if (preset === '7') {
+                        start.setDate(end.getDate() - 7);
+                    } else if (preset === '30') {
+                        start.setDate(end.getDate() - 30);
+                    } else if (preset === 'ytd') {
+                        start = new Date(end.getFullYear(), 0, 1); // Jan 1st of current year
+                    }
+
+                    document.getElementById('filterEndDate').value = end.toISOString().split('T')[0];
+                    document.getElementById('filterStartDate').value = start.toISOString().split('T')[0];
+                    
+                    fetchFilteredData();
+                });
+            });
+
+            // Theme Toggle Logic
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+            const themeIcon = themeToggleBtn.querySelector('i');
+            
+            themeToggleBtn.addEventListener('click', () => {
+                const root = document.documentElement;
+                const currentTheme = root.getAttribute('data-theme');
+                
+                if (currentTheme === 'light') {
+                    root.removeAttribute('data-theme');
+                    themeIcon.className = 'bi bi-brightness-high-fill';
+                    themeToggleBtn.className = 'btn btn-outline-warning btn-sm shadow-sm';
+                    applyThemeToPlotly('dark');
+                } else {
+                    root.setAttribute('data-theme', 'light');
+                    themeIcon.className = 'bi bi-moon-stars-fill';
+                    themeToggleBtn.className = 'btn btn-outline-secondary btn-sm shadow-sm';
+                    applyThemeToPlotly('light');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

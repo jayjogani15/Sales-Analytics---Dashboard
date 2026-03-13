@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+instance/
+data/latest_email_report.html
+data/*.webp
+data/*.png
+data/uploaded_*
+app.db
+*.log
+.DS_Store
