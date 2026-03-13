@@ -607,8 +607,11 @@ except Exception as e:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    # Get port from environment variable for cloud deployment (Render, Heroku, etc.)
+    port = int(os.environ.get("PORT", 5000))
     print("=" * 60)
-    print("  Sales Analytics Dashboard")
-    print("  Running at: http://127.0.0.1:5000")
+    print(f"  Sales Analytics Dashboard")
+    print(f"  Running at: http://0.0.0.0:{port}")
     print("=" * 60)
-    app.run(debug=True, port=5000)
+    # Turn off debug mode in production for security, or keep it manageable
+    app.run(host="0.0.0.0", port=port, debug=True)
