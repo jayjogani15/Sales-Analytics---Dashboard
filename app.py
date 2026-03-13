@@ -295,15 +295,29 @@ def build_line_chart(df: pd.DataFrame) -> str:
         go.Scatter(
             x=daily["DateStr"],
             y=daily["Sales"],
-            mode="lines+markers",
+            mode="lines",
             name="Daily Sales",
-            line=dict(color="#6366f1", width=3, shape="spline"),
-            marker=dict(size=6, color="#818cf8",
-                        line=dict(color="#0f172a", width=1.5)),
+            line=dict(
+                color="#22d3ee", 
+                width=4, 
+                shape="spline",
+                smoothing=1.3
+            ),
             fill="tozeroy",
-            fillcolor="rgba(99,102,241,0.12)",
+            fillcolor="rgba(34, 211, 238, 0.1)",
             customdata=daily["Sales"].values,
             hovertemplate="<b>%{x}</b><br>Sales: $%{customdata:,.0f}<extra></extra>",
+        )
+    )
+    # Add a subtle glow effect using a second, thicker, transparent line
+    fig.add_trace(
+        go.Scatter(
+            x=daily["DateStr"],
+            y=daily["Sales"],
+            mode="lines",
+            line=dict(color="rgba(34, 211, 238, 0.2)", width=12, shape="spline"),
+            hoverinfo="skip",
+            showlegend=False
         )
     )
     fig.update_layout(
